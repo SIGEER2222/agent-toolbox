@@ -31,9 +31,13 @@ def color_hex(c):
 
 W, H = 3840, 2160
 FS = 64          # 基准字号
-SCROLL_S = 13.0  # 滚动穿越秒数
+SCROLL_S = 15.0  # 滚动穿越秒数（稍慢减小每帧位移，减轻晃眼）
 FIX_S = 5.0      # 顶/底部固定秒数
-LANES = 18
+TOP_Q = H // 4   # 弹幕只占用上方 1/4 屏
+LANE_H = 78
+LANES = TOP_Q // LANE_H          # 滚动泳道数（2160/4/78 ≈ 6）
+TOP_FIXED = min(5, TOP_Q // 72)  # 顶部固定弹幕泳道数
+ALPHA = "\\1a&H66&\\3a&H80&"     # 主色 40% 透明、描边 50% 透明
 
 def convert(xml_bytes, out_path):
     txt = xml_bytes.decode("utf-8", "ignore")
@@ -52,7 +56,7 @@ def convert(xml_bytes, out_path):
         items.append((st, mode, fs, col, text))
     items.sort()
     lane_end = [0.0] * LANES      # 滚动弹幕每泳道占用结束时间
-    top_end = [0.0] * 6
+    top_end = [0.0] * TOP_FIXED
     bot_end = [0.0] * 6
     lines = []
     for st, mode, fs, col, text in items:
@@ -64,28 +68,24 @@ def convert(xml_bytes, out_path):
             t2 = st + dur
             # 找最早空出的泳道
             lane = min(range(LANES), key=lambda i: lane_end[i])
-            if lane_end[lane] > st:
-                # 挤一挤也要放：选最早结束的道
-                pass
-            lane_end[lane] = max(lane_end[lane], t2) if lane_end[lane] < t2 else lane_end[lane]
             lane_end[lane] = st + dur * 0.35  # 近似放行间隔
-            y = 60 + lane * (size + 10)
+            y = 40 + lane * LANE_H           # 全部限制在顶部 1/4 区域
             if mode == 6:   # 左到右
                 mov = "\\move(%d,%d,%d,%d)" % (-600, y, W + 600, y)
             else:
                 mov = "\\move(%d,%d,%d,%d)" % (W + 600, y, -600 - len(text) * size, y)
-            eff = "{\\an8\\fs%d\\bord2\\shad0%s%s}" % (size, mov, coltag)
+            eff = "{\\an8\\fs%d\\bord2\\shad0%s%s%s}" % (size, mov, coltag, ALPHA)
         elif mode == 5:    # 顶部固定
-            lane = min(range(6), key=lambda i: top_end[i])
+            lane = min(range(TOP_FIXED), key=lambda i: top_end[i])
             top_end[lane] = st + FIX_S
             y = 40 + lane * (size + 8)
-            eff = "{\\an8\\fs%d\\bord2\\shad0\\pos(%d,%d)%s}" % (size, W // 2, y, coltag)
+            eff = "{\\an8\\fs%d\\bord2\\shad0\\pos(%d,%d)%s%s}" % (size, W // 2, y, coltag, ALPHA)
             t2 = st + FIX_S
         elif mode == 4:    # 底部固定
             lane = min(range(6), key=lambda i: bot_end[i])
             bot_end[lane] = st + FIX_S
             y = H - 80 - lane * (size + 8)
-            eff = "{\\an2\\fs%d\\bord2\\shad0\\pos(%d,%d)%s}" % (size, W // 2, y, coltag)
+            eff = "{\\an2\\fs%d\\bord2\\shad0\\pos(%d,%d)%s%s}" % (size, W // 2, y, coltag, ALPHA)
             t2 = st + FIX_S
         else:
             continue
