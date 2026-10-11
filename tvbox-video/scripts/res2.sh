@@ -1,5 +1,5 @@
 #!/bin/bash
-FP="$WINHOME/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-9.0.2-full_build/bin/ffprobe.exe"
+FP="${WINHOME:-$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r' | sed 's|^\(.\):|/mnt/\L\1|;s|\\|/|g')}/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-9.0.2-full_build/bin/ffprobe.exe"
 declare -A U
 U[jsm3u8]="https://vv.jisuzyv.com/play/b680rlVe/index.m3u8"
 U[dbm3u8]="https://b3.bdzybf22.com/videos/202610/10/6ac9b10413f8cfc0dd5a/index.m3u8"

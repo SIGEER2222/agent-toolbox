@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
-import urllib.request, re, os, glob, html
+import urllib.request, re, os, glob, html, subprocess
 
-DL = "$WINHOME/Downloads"
+def _winhome():
+    try:
+        p = subprocess.check_output(['cmd.exe', '/c', 'echo', '%USERPROFILE%'], text=True).strip()
+        return '/mnt/' + p[0].lower() + p[2:].replace('\\', '/')
+    except Exception:
+        return os.path.expanduser('~')
+DL = _winhome() + '/Downloads'
 UA = {"User-Agent": "Mozilla/5.0", "Accept-Encoding": "gzip, deflate",
       "Referer": "https://www.bilibili.com/"}
 EPS = {185:40480868938,186:40698383030,187:40920682135,188:41140749663,
