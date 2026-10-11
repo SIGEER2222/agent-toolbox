@@ -44,6 +44,17 @@ Session\InterfaceAddress=<本机网卡IP>   ; 本机示例：192.168.1.3
 Session\GlobalUPLimit=300               ; 上传限速 300KB/s，保护流量套餐
 ```
 
+可选：开启 WebUI 便于 API 控制（5.x 必须先设凭据否则不监听）：
+
+```ini
+[Preferences]
+WebUI\Enabled=true
+WebUI\Port=8080
+WebUI\LocalHostAuth=false
+WebUI\Username=<user>
+WebUI\Password_PBKDF2="@ByteArray(<b64salt>:<b64hash>)"   ; PBKDF2-HMAC-SHA512 100k 轮，生成见 scripts/fix_webui.py
+```
+
 ### 4. 批量添加磁链（免对话框）
 
 ```powershell
@@ -125,13 +136,18 @@ curl --compressed -A "Mozilla/5.0" -H "Referer: https://www.bilibili.com/" \
 | 弹幕验证渲染时间错位 | `-ss` 在 `-i` 前归零 pts | 加 `-copyts` 保持原时间戳 `[实测]` |
 | B站弹幕 XML 是乱码 | 接口恒定 brotli | curl 加 `--compressed` `[实测]` |
 | TVBox jar 源导入 0 站点 | zyfun PC 只支持 cms json/xml + drpy js | 换 cms/drpy 接口 `[实测]` |
-| WebUI 按文档写 ini 不起作用 | 8080 不监听 | 用 `--skip-dialog` 代替 API `[需复查]` |
+| WebUI 按文档写 ini 不起作用 | 5.x 未设凭据不监听 | 先停 qBittorrent 再写 `WebUI\Username`+`Password_PBKDF2`（`scripts/fix_webui.py`），重启即通 `[实测]` |
+| 下载全停/极慢 | 磁链没带 tracker，纯 DHT 冷启动 | WebUI API `torrents/addTrackers` 注入公共 tracker 再 `reannounce`（`scripts/add_trackers.sh`）`[实测]` |
+| 文件看着满尺寸但打不开 | qBittorrent 预分配，mp4 moov 在尾部没下到 | `ffprobe` 读 duration 判完整；API 看 `progress` 字段才是真进度 `[实测]` |
+| ffprobe 能读但进度很低 | moov 在头/尾部已到，中间缺 | 以 torrent progress 为准，ffprobe OK ≠ 完整 `[实测]` |
 
 ## 文件清单
 
 | 文件 | 用途 |
 |---|---|
 | README.txt | zyfun 内置 API 速查 + 已验证源/线路结论 |
+| scripts/qb_api.sh / add_trackers.sh / fix_webui.py | qBittorrent WebUI 登录+任务状态 / 批量注入 tracker / 生成 PBKDF2 凭据写 ini |
+| scripts/dl_status.ps1 / check_complete.ps1 / dl_speed.py / qbconn.ps1 | 下载目录体检：文件大小 / ffprobe 完整性 / 真实增速 / peer 连接数 |
 | scripts/dm_fetch.sh | 批量拉 B 站弹幕 XML（brotli 解压） |
 | scripts/dm_all.py | XML→ASS 转换，按 mp4 同名落盘 |
 | scripts/dm_proof.ps1 | ffmpeg 渲一帧验证弹幕叠加 |
