@@ -41,35 +41,63 @@
 
 ### 4b. 夸克网盘 API 自动化（BT 薄种替代路线）
 
-BT swarm 冷（~200KB/s）时走夸克：本机登录态取 cookie → 调 API 转存 → 取直链 → aria2/curl 拉满速。
+BT swarm 冷（~200KB/s）时走夸克。两条路线，**实测只有 CDP 走通了**：
 
-**前提**：夸克浏览器已登录网盘（`pan.quark.cn`）；否则 `account/info` 返回空 `data`，只能匿名列文件不能转存/下载。
+#### 路线 A：cookie 提取直接调 API ❌ 走不通
 
-**步骤**
+`__pus`/`__puus`/`__uid` 是夸克网盘的登录 cookie，但：
 
-1. 解本机登录 cookie（`scripts/quark_getcookie.py`）：
-   - Chromium cookie 是 AES-256-GCM：密钥在 `User Data/Local State` 的 `os_crypt.encrypted_key`，去掉 `DPAPI` 前缀后 `win32crypt.CryptUnprotectData` 解出
-   - cookie 值 `v10`/`v20` 前缀：`[3:15]` 是 nonce，`[15:]` 是密文，`AESGCM(key).decrypt` 出明文
-   - **坑**：浏览器运行中独占了 `Network\Cookies` 文件锁，`shutil.copy`/`immutable=1` 都会失败——必须先杀浏览器进程再读，读完拉起
-   - **坑**：解密串可能带控制字符，用作 HTTP Cookie 头前按 `value.isascii()` 过滤，否则 latin-1 编码报错
+- 夸克**浏览器** cookie 库里只有匿名态 cookie（11 个），登录态不落盘——`pan.quark.cn` 的网盘界面其实是浏览器内嵌的 `uccd://cloud.quark` 页面，认证信息不走 web cookie。
+- 旧版 `uc-cloud-drive` 客户端（`%APPDATA%\uc-cloud-drive`）cookie 库里确实有 `__pus`/`__puus`，但即使带上它们调 `drive-pc.quark.cn` 也是 `401 require login [guest]`——服务端对渠道/cookie 组合有校验，纯 cookie 重放不成立。
+- Chromium cookie 解密链路本身没问题（`scripts/quark_getcookie2.py`：DPAPI→AES-GCM→剥 32B SHA256 前缀），拿到的是真值，只是服务端不认。
 
-2. 调 API（全部 `Cookie: <上一步>` + quark UA + `Content-Type: application/json`）：
+#### 路线 B：CDP 接管已登录页面，页面内发请求 ✅ 实测通过
+
+网盘内嵌页 `uccd://cloud.quark/clouddrive/renderer/index.html` 的登录态在页面 JS 上下文里（内存态 cookie + 渠道参数），**在页面里 fetch 就自动带全认证**。
+
+1. 带调试端口启动浏览器（登录态全保留）：
+   ```
+   "<Quark安装目录>\quark.exe" --remote-debugging-port=9222 "uccd://cloud.quark/"
+   ```
+   验证：`curl http://127.0.0.1:9222/json` 应能看到 `clouddrive/renderer/index.html` 标签页。ws 连接要 `suppress_origin=True`（新版 DevTools 校验 Origin）。
+
+2. CDP `Network.requestWillBeSent` 抓页面真实请求，抄它的完整参数。认证关键全在 URL query 里：
+   ```
+   uc_param_str=dsdnfrpfbivesscpgimibtbmnijblauputogpintnwktprchmt
+   &device_model=<设备名>&pr=ucpro&fr=win&sys=win32&ve=<浏览器版本>
+   ```
+   **坑**：`fr=win` 不是 `fr=pc`——用 `fr=pc` 服务端回 `401 require login [guest]` 即使 cookie 全对。
+
+3. 页面内 `fetch(url, {credentials:'include'})` 调 API（`scripts/quark_cdp_dl.py` → `quark_cdp_walk.py` → `quark_cdp_save2.py`）：
 
    ```
-   POST https://drive-pc.quark.cn/1/clouddrive/share/sharepage/token?pr=ucpro&fr=pc
-     {"pwd_id":"<分享id>"}                          → data.stoken（匿名可用）
-   GET  https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail?pr=ucpro&fr=pc
-        &pwd_id=&stoken=&pdir_fid=<目录fid>&_page=1&_size=200  → 列文件（匿名可用）
-   POST https://pan.quark.cn/account/info?fr=pc&platform=pc    → 验证登录态（data 空=未登录）
-   POST https://drive-pc.quark.cn/1/clouddrive/share/sharepage/save?pr=ucpro&fr=pc
-     {"fid_list":[...],"fid_token_list":[...],"pwd_id":...,"stoken":...,"to_pdir_fid":"0"}  → 转存（需登录）
-   POST https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc
-     {"fids":[...]}                                 → data.download_url（需登录）
+   POST /1/clouddrive/share/sharepage/token        {"pwd_id","passcode":""} → data.stoken
+   GET  /1/clouddrive/share/sharepage/detail       ?pwd_id&stoken&pdir_fid&_page&_size=500
+        → list[]（文件含 fid、share_fid_token、size；文件夹 dir=true 继续递归）
+   POST /1/clouddrive/share/sharepage/save
+        {"pwd_id","stoken","fid_list":[...],"fid_token_list":[share_fid_token,...],
+         "to_pdir_fid":"0","pdir_fid":"0","scene":"link"}  → data.task_id
+        ⚠ fid_token_list 是纯 token 字符串数组，传对象数组会 500 inner error
+   GET  /1/clouddrive/task?task_id=...             → 轮询 status==2，取 save_as.save_as_top_fids
+   POST /1/clouddrive/file/download                {"fids":[...]} → data[].download_url
    ```
 
-3. `download_url` 带 Cookie 头用 aria2 多连接拉：`-x16 -s16`，夸克 CDN 一般跑满带宽。
+4. `download_url` 带 Cookie 头用 aria2 拉：`aria2c -x16 -s16 --header="Cookie: <full>" --header="User-Agent: <quark-cloud-drive UA>" -o <名> <url>`（`scripts/quark_aria2.py`）。
+   **实测速度**：非会员账号服务器限速 **总速 ~1MB/s**（16 连接也一样，限速是账号级不是连接级）；1.1GiB ≈ 17 分钟。aria2 有 `.aria2` 控制文件可断点续传。
 
-**脚本**：`scripts/quark_dl.py`（登录检查→stoken→列分享目录→找目标集数）。注意分享里的文件名常被混淆（如 `凡@~1@修个R山@Z`、`FR.EP189.剧场.4K.HEVC-GM.mp4`），匹配按集数数字别按片名。
+**文件名混淆**：分享里片名是 `F 凡@~1@修个R山@Z`、`FR.EP189.剧场.4K.HEVC-GM.mp4` 这种，按 `EP<num>` 数字匹配别按片名。
+
+#### 成熟三方工具（按需选用）
+
+| 工具 | 形态 | 适用 | 备注 |
+|---|---|---|---|
+| [ihmily/QuarkPanTool](https://github.com/ihmily/QuarkPanTool) | Python CLI/打包 exe | 批量转存+下载 | playwright 自动开浏览器扫码登录，不抠 cookie；`url.txt` 一行一个分享链接 |
+| [CloudDrive2](https://www.clouddrive2.com) | 商业后台服务 | 网盘挂本地盘/WebDAV | 挂载后 Emby/Plex/mpv 直接读；核心终身版 499 元，免费档限速 |
+| [Alist](https://alist.nn.ci) | 开源自架 | 多网盘统一 WebDAV | 夸克驱动要 cookie 里 `__pus`；自架服务常驻 |
+| [quarkSync](https://github.com/ai-written/quarkSync) | Node.js + web UI | 追更自动转存 | 监控分享链接新增文件自动转存+AList 下载，cron 调度 |
+| [Gopeed](https://gopeed.com) + [夸克扩展](https://github.com/iGwkang/gopeed-extension-quark) | 下载器 | 投喂分享链接直接下 | 扩展自动转存取直链多线程下 |
+
+**脚本**：`scripts/quark_getcookie2.py`（cookie 解密，路线 A 遗留）、`quark_cdp*.py`（路线 B 全套）、`quark_aria2.py`（投喂 aria2）。注意 cookie/token/下载直链都是敏感信息，禁止入库。
 
 ### 3. 配置 qBittorrent
 
@@ -184,7 +212,9 @@ curl --compressed -A "Mozilla/5.0" -H "Referer: https://www.bilibili.com/" \
 |---|---|
 | README.txt | zyfun 内置 API 速查 + 已验证源/线路结论 |
 | scripts/qb_api.sh / add_trackers.sh / fix_webui.py | qBittorrent WebUI 登录+任务状态 / 批量注入 tracker / 生成 PBKDF2 凭据写 ini |
-| scripts/quark_getcookie.py / quark_dl.py | 夸克浏览器 cookie 解密提取 / 网盘 API：stoken→列分享→转存→直链（见 4b 节） |
+| scripts/quark_getcookie2.py | Chromium cookie 解密（DPAPI→AES-GCM→剥 SHA256 前缀），路线 A 遗留 |
+| scripts/quark_cdp_dl.py / quark_cdp_walk.py / quark_cdp_save2.py | 夸克路线 B 全套：CDP 接管已登录 uccd 页→stoken→递归列分享→转存→直链（见 4b 节） |
+| scripts/quark_aria2.py | 直链+cookie 投喂 aria2c 多连接下载（-x16 -s16，断点续传） |
 | scripts/dl_status.ps1 / check_complete.ps1 / dl_speed.py / qbconn.ps1 | 下载目录体检：文件大小 / ffprobe 完整性 / 真实增速 / peer 连接数 |
 | scripts/dm_fetch.sh | 批量拉 B 站弹幕 XML（brotli 解压） |
 | scripts/dm_all.py | XML→ASS 转换，按 mp4 同名落盘 |
