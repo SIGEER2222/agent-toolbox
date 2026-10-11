@@ -1,4 +1,4 @@
-$exe = "C:\Users\22448\AppData\Local\Programs\zyfun\zyfun.exe"
+$exe = "%USERPROFILE%\AppData\Local\Programs\zyfun\zyfun.exe"
 Start-Process "explorer.exe" -ArgumentList "`"$exe`""
 Start-Sleep -Seconds 12
 $p = Get-Process zyfun -ErrorAction SilentlyContinue

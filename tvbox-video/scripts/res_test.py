@@ -1,6 +1,6 @@
 import json, urllib.request, urllib.parse, subprocess
 BASE = "http://127.0.0.1:9978/api/v1"
-FFPROBE = r"C:\Users\22448\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.2-full_build\bin\ffprobe.exe"
+FFPROBE = r"%USERPROFILE%\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.2-full_build\bin\ffprobe.exe"
 SITES = [
     ("f6b0662e-3b3d-4c82-8ca1-1c6993204378", "电影天堂"),
     ("510e3292-bdca-43c8-8b94-e43256e02f5c", "量子"),

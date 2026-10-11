@@ -20,8 +20,8 @@ zyfun（ZyPlayer 现名）3.4.7 — TVBox 生态 PC 播放器
 - dytt/feifan/ukyun/liangzi/jsyun 等 share 页线路要走应用嗅探，慢且可能失败
 - 测速结果：暴風/百度/极速 最佳（playlist<1.5s、分片120-160KB/s）；尤酷/电影天堂/非凡较慢但可播
 - 播放接口：GET /film/cms/play?uuid=&play=<$后的url>&flag=<线路名>
-- play_test.py / line_test.py / stream_test.py 可随时重测全链路
+- scripts/play_test.py / line_test.py / stream_test.py 可随时重测全链路
 
 启动注意：从 WSL 里 Start-Process 直拉会静默退出；
-必须用 explorer.exe 拉进交互会话：powershell -File launch.ps1
-zyctl.ps1：status/start/kill。
+必须用 explorer.exe 拉进交互会话：powershell -File scripts/launch.ps1
+scripts/zyctl.ps1：status/start/kill。

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import urllib.request, re, os, glob, html
 
-DL = "/mnt/c/Users/22448/Downloads"
+DL = "$WINHOME/Downloads"
 UA = {"User-Agent": "Mozilla/5.0", "Accept-Encoding": "gzip, deflate",
       "Referer": "https://www.bilibili.com/"}
 EPS = {185:40480868938,186:40698383030,187:40920682135,188:41140749663,

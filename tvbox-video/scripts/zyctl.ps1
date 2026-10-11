@@ -1,5 +1,5 @@
 param([string]$action = "status")
-$exe = "C:\Users\22448\AppData\Local\Programs\zyfun\zyfun.exe"
+$exe = "%USERPROFILE%\AppData\Local\Programs\zyfun\zyfun.exe"
 switch ($action) {
   "start" {
     Start-Process $exe
