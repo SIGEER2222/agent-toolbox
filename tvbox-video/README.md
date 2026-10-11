@@ -39,6 +39,38 @@
   - 移动云盘 `yun.139.com/shareweb/#/w/i/2qidZUhg9Aorl`
   - 注意：分享链接会过期失效（旧夸克链 `c737dd5a9484` 已失效），用前先打开确认
 
+### 4b. 夸克网盘 API 自动化（BT 薄种替代路线）
+
+BT swarm 冷（~200KB/s）时走夸克：本机登录态取 cookie → 调 API 转存 → 取直链 → aria2/curl 拉满速。
+
+**前提**：夸克浏览器已登录网盘（`pan.quark.cn`）；否则 `account/info` 返回空 `data`，只能匿名列文件不能转存/下载。
+
+**步骤**
+
+1. 解本机登录 cookie（`scripts/quark_getcookie.py`）：
+   - Chromium cookie 是 AES-256-GCM：密钥在 `User Data/Local State` 的 `os_crypt.encrypted_key`，去掉 `DPAPI` 前缀后 `win32crypt.CryptUnprotectData` 解出
+   - cookie 值 `v10`/`v20` 前缀：`[3:15]` 是 nonce，`[15:]` 是密文，`AESGCM(key).decrypt` 出明文
+   - **坑**：浏览器运行中独占了 `Network\Cookies` 文件锁，`shutil.copy`/`immutable=1` 都会失败——必须先杀浏览器进程再读，读完拉起
+   - **坑**：解密串可能带控制字符，用作 HTTP Cookie 头前按 `value.isascii()` 过滤，否则 latin-1 编码报错
+
+2. 调 API（全部 `Cookie: <上一步>` + quark UA + `Content-Type: application/json`）：
+
+   ```
+   POST https://drive-pc.quark.cn/1/clouddrive/share/sharepage/token?pr=ucpro&fr=pc
+     {"pwd_id":"<分享id>"}                          → data.stoken（匿名可用）
+   GET  https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail?pr=ucpro&fr=pc
+        &pwd_id=&stoken=&pdir_fid=<目录fid>&_page=1&_size=200  → 列文件（匿名可用）
+   POST https://pan.quark.cn/account/info?fr=pc&platform=pc    → 验证登录态（data 空=未登录）
+   POST https://drive-pc.quark.cn/1/clouddrive/share/sharepage/save?pr=ucpro&fr=pc
+     {"fid_list":[...],"fid_token_list":[...],"pwd_id":...,"stoken":...,"to_pdir_fid":"0"}  → 转存（需登录）
+   POST https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc
+     {"fids":[...]}                                 → data.download_url（需登录）
+   ```
+
+3. `download_url` 带 Cookie 头用 aria2 多连接拉：`-x16 -s16`，夸克 CDN 一般跑满带宽。
+
+**脚本**：`scripts/quark_dl.py`（登录检查→stoken→列分享目录→找目标集数）。注意分享里的文件名常被混淆（如 `凡@~1@修个R山@Z`、`FR.EP189.剧场.4K.HEVC-GM.mp4`），匹配按集数数字别按片名。
+
 ### 3. 配置 qBittorrent
 
 编辑 `%APPDATA%\qBittorrent\qBittorrent.ini` 的 `[BitTorrent]` 段：
@@ -152,6 +184,7 @@ curl --compressed -A "Mozilla/5.0" -H "Referer: https://www.bilibili.com/" \
 |---|---|
 | README.txt | zyfun 内置 API 速查 + 已验证源/线路结论 |
 | scripts/qb_api.sh / add_trackers.sh / fix_webui.py | qBittorrent WebUI 登录+任务状态 / 批量注入 tracker / 生成 PBKDF2 凭据写 ini |
+| scripts/quark_getcookie.py / quark_dl.py | 夸克浏览器 cookie 解密提取 / 网盘 API：stoken→列分享→转存→直链（见 4b 节） |
 | scripts/dl_status.ps1 / check_complete.ps1 / dl_speed.py / qbconn.ps1 | 下载目录体检：文件大小 / ffprobe 完整性 / 真实增速 / peer 连接数 |
 | scripts/dm_fetch.sh | 批量拉 B 站弹幕 XML（brotli 解压） |
 | scripts/dm_all.py | XML→ASS 转换，按 mp4 同名落盘 |
