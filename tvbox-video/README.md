@@ -32,7 +32,12 @@
 
 - 聚合页：`https://www.ku0.cc/1214`（凡人修仙传 4K 2160p 全季分集磁链+网盘，周更）`[时效性，2026-10-11 验证]`
 - 备选：nyaa.si 搜 `凡人修仙传`（Doomdos 发布组，`[4K BILIBILI COM WEB-DL]`）——页面国内直连可能打不开，但磁链经 DHT/PEX 照样能下
-- 网盘备选：夸克 `pan.quark.cn/s/c737dd5a9484`（HEVC 版体积更小）
+- 网盘备选（链接会变，以聚合页当前挂的为准）：
+  - 夸克 `pan.quark.cn/s/182564e99d76`（GM*漫爱好分享，980 文件 944.8G，HEVC 版体积小）`[2026-10-11 验证活]`
+  - 百度 `pan.baidu.com/s/1sVpHr5ha6r0cnhUQJBLLrg?pwd=6666`
+  - 迅雷云盘 `pan.xunlei.com/s/VOxBgjszEQwHiFTFBaEuzRwhA1?pwd=hree`
+  - 移动云盘 `yun.139.com/shareweb/#/w/i/2qidZUhg9Aorl`
+  - 注意：分享链接会过期失效（旧夸克链 `c737dd5a9484` 已失效），用前先打开确认
 
 ### 3. 配置 qBittorrent
 
