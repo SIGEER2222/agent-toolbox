@@ -1,0 +1,2 @@
+@echo off
+start "" "C:\Program Files\qBittorrent\qbittorrent.exe"

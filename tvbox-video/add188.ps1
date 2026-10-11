@@ -1,0 +1,2 @@
+$m = "magnet:?xt=urn:btih:a8489628fcaf244586c66ad2bd5e3322704aa061&dn=%5BDoomdos%5D%20-%20%E5%87%A1%E4%BA%BA%E4%BF%AE%E4%BB%99%E4%BC%A0%20-%20%E7%AC%AC188%E8%AF%9D%20-%20%5B4K%20BILIBILI%20COM%20WEB-DL%5D&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce"
+Start-Process "C:\Program Files\qBittorrent\qbittorrent.exe" -ArgumentList "--skip-dialog", "`"$m`""
