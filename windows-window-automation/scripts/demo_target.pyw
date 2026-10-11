@@ -11,7 +11,7 @@ root = tk.Tk()
 root.title("WADemo")
 root.geometry("360x150")
 
-entry = tk.Entry(root, font=("Consolas", 18), width=20)
+entry = tk.Entry(root, font=("Consolas", 18), width=20, insertofftime=0)
 entry.pack(pady=(16, 6), padx=20, fill="x")
 entry.focus_set()
 

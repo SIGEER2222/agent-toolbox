@@ -1,40 +1,71 @@
 # -*- coding: utf-8 -*-
-"""lock_verify.py — Verify background automation WHILE the workstation is locked.
+"""lock_verify.py — 锁屏态后台操作实测（两阶段；第二阶段需要用户解锁一次）。
 
-What it does (single run):
-  1. Ensures two native test targets exist: WADemo (typing) and winver (click).
-  2. Countdown 15 s (Ctrl+C to abort), then LockWorkStation() -> session locks.
-  3. While locked (this process keeps running in the user session):
-       - injects WM_CHAR 'LCK' into the WADemo entry (background typing)
-       - sends BM_CLICK to winver's native OK button (background click)
-       - captures WADemo via PrintWindow (offscreen capture attempt)
-  4. Writes results to %TEMP%\\wa_lock_result.txt.
-  5. Exits. The session stays locked; results are readable after unlock —
-     or from any other process/WSL while still locked.
+phase 1  python lock_verify.py lock
+         拉起 WADemo(tk) 与新开的 winver(原生对话框) -> 记录基线 -> LockWorkStation()
+         -> 轮询直到 LogonUI.exe 出现（证明真的进入锁屏，而不是只调用了 API）
+         -> 锁屏中：WM_CHAR 注入 'LCK' 到 tk Entry、PostMessageW BM_CLICK 点 winver 确定、PrintWindow 截图
+         -> 状态写入 %TEMP%\\wa_lock_state.json，之后等待用户解锁。
+phase 2  python lock_verify.py check
+         解锁后运行：核对锁屏期间投递的操作是否在解锁后补执行（winver 是否已销毁、Entry 是否多出 'LCK'），
+         然后关闭本次拉起的两个测试窗口。
 
-Run:  python.exe lock_verify.py
+只操作本脚本自己拉起的测试窗口，不碰用户已有窗口。
 """
-import ctypes, os, subprocess, sys, time
+import ctypes
+import json
+import os
+import subprocess
+import sys
+import time
 from ctypes import wintypes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from win_capture import user32, list_windows, find_window, shot
+from win_capture import close, list_windows, shot, type_text, user32  # noqa: E402
+from bg_verify import entry_dark_px  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except AttributeError:
     pass
 
-RESULT = os.path.join(os.environ.get("TEMP", "."), "wa_lock_result.txt")
-LINES = []
+HERE = os.path.dirname(os.path.abspath(__file__))
+TEMP = os.environ.get("TEMP", ".")
+STATE = os.path.join(TEMP, "wa_lock_state.json")
+BM_CLICK = 0x00F5
+PYW = sys.executable.replace("python.exe", "pythonw.exe")
 
-def log(msg):
-    print(msg, flush=True)
-    LINES.append(msg)
 
-def first_child(hwnd, cls_name):
-    found = []
+def desktop_name():
+    d = user32.OpenInputDesktop(0, False, 0x0001)
+    if not d:
+        return f"<open failed err={ctypes.GetLastError()}>"
+    buf = ctypes.create_unicode_buffer(64)
+    user32.GetUserObjectInformationW(d, 2, buf, ctypes.sizeof(buf), None)
+    user32.CloseDesktop(d)
+    return buf.value
+
+
+def logonui_running():
+    out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq LogonUI.exe", "/NH"],
+                         capture_output=True, text=True, errors="replace").stdout
+    return "LogonUI.exe" in out
+
+
+def dialogs32770():
+    out = set()
+    for h, _, _t in list_windows():
+        cls = ctypes.create_unicode_buffer(64)
+        user32.GetClassNameW(h, cls, 64)
+        if cls.value == "#32770":
+            out.add(h)
+    return out
+
+
+def child_of(hwnd, cls_name):
     P = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    found = []
+
     def cb(c, _):
         buf = ctypes.create_unicode_buffer(64)
         user32.GetClassNameW(c, buf, 64)
@@ -42,85 +73,91 @@ def first_child(hwnd, cls_name):
             found.append(c)
             return False
         return True
+
     user32.EnumChildWindows(hwnd, P(cb), 0)
     return found[0] if found else 0
 
-def find_hwnd(substr):
-    try:
-        return find_window(substr)[0]
-    except SystemExit:
-        return 0
 
-def launch_demo():
-    pyw = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo_target.pyw")
-    exe = sys.executable
-    if exe.lower().endswith("python.exe"):
-        exe = exe[:-len("python.exe")] + "pythonw.exe"
-    subprocess.Popen([exe, pyw])
-    for _ in range(30):
-        time.sleep(0.3)
-        h = find_hwnd("WADemo")
-        if h:
-            return h
-    return 0
-
-def launch_winver():
+def phase_lock():
+    dlg_before = dialogs32770()
     subprocess.Popen(["cmd.exe", "/c", "start", "winver"])
-    for _ in range(30):
+    demo_proc = subprocess.Popen([PYW, os.path.join(HERE, "demo_target.pyw")])
+    demo = winver = 0
+    for _ in range(40):
         time.sleep(0.3)
-        for w in list_windows():
-            cls = ctypes.create_unicode_buffer(64)
-            user32.GetClassNameW(w[0], cls, 64)
-            if cls.value == "#32770" and "windows" in w[2].lower():
-                return w[0]
-    return 0
-
-def main():
-    log(f"start {time.strftime('%H:%M:%S')}")
-
-    demo = find_hwnd("WADemo") or launch_demo()
-    log(f"WADemo hwnd={demo}")
-
-    winver = 0
-    for w in list_windows():
-        cls = ctypes.create_unicode_buffer(64)
-        user32.GetClassNameW(w[0], cls, 64)
-        if cls.value == "#32770" and "windows" in w[2].lower():
-            winver = w[0]
+        demo = next((h for h, p, t in list_windows() if p == demo_proc.pid and t == "WADemo"), 0)
+        new = dialogs32770() - dlg_before
+        winver = next(iter(new), 0)
+        if demo and winver:
             break
-    if not winver:
-        winver = launch_winver()
-    ok_btn = first_child(winver, "Button") if winver else 0
-    log(f"winver hwnd={winver} OK-button hwnd={ok_btn}")
+    if not (demo and winver):
+        raise SystemExit(f"launch failed demo={demo} winver={winver}")
+    time.sleep(1.0)
+    ok_btn = child_of(winver, "Button")
+    base_png = os.path.join(TEMP, "wa_lock_base.png")
+    shot(demo, base_png)
+    base = entry_dark_px(base_png)
+    print(f"demo={demo} winver={winver} ok_btn={ok_btn} base_dark={base}", flush=True)
+    print(f"pre-lock desktop={desktop_name()!r} logonui={logonui_running()}", flush=True)
 
-    for i in range(15, 0, -1):
-        print(f"locking in {i}s (Ctrl+C to abort)", flush=True)
+    ret = user32.LockWorkStation()
+    print(f"LockWorkStation() returned {ret}", flush=True)
+    locked = False
+    for i in range(15):
         time.sleep(1)
-    log("locking workstation ...")
-    user32.LockWorkStation()
-    time.sleep(8)
+        ui = logonui_running()
+        print(f"  poll {i+1}s desktop={desktop_name()!r} logonui={ui}", flush=True)
+        if ui:
+            locked = True
+            break
+    time.sleep(2)
 
-    if demo:
-        entry = first_child(demo, "TkChild") or demo
-        for ch in "LCK":
-            user32.PostMessageW(entry, 0x0102, ord(ch), 0)
-            time.sleep(0.02)
-        time.sleep(0.4)
-        png = os.path.join(os.environ.get("TEMP", "."), "wa_lock.png")
-        try:
-            shot(demo, png)
-            log(f"while-locked: WM_CHAR 'LCK' posted; PrintWindow OK -> {png}")
-        except SystemExit as e:
-            log(f"while-locked: WM_CHAR 'LCK' posted; PrintWindow FAILED: {e}")
+    type_text(demo, "LCK")
+    user32.PostMessageW(ok_btn, BM_CLICK, 0, 0)
+    time.sleep(2)
+    during_png = os.path.join(TEMP, "wa_lock_during.png")
+    try:
+        shot(demo, during_png)
+        during_delta = entry_dark_px(during_png) - base
+    except SystemExit as e:
+        during_png, during_delta = None, f"shot failed: {e}"
+    during = {
+        "locked_seen": locked,
+        "desktop": desktop_name(),
+        "logonui": logonui_running(),
+        "entry_delta": during_delta,
+        "winver_alive": bool(user32.IsWindow(winver)),
+    }
+    print("during-lock:", during, flush=True)
+    json.dump({"demo": demo, "winver": winver, "ok_btn": ok_btn, "base": base,
+               "during": during}, open(STATE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    print(f"state -> {STATE}\n请解锁屏幕，然后运行: python lock_verify.py check", flush=True)
 
-    if ok_btn:
-        user32.SendMessageW(ok_btn, 0x00F5, 0, 0)  # BM_CLICK
-        time.sleep(0.6)
-        log(f"while-locked: BM_CLICK sent; winver IsWindow afterwards = {bool(user32.IsWindow(winver))}")
 
-    log(f"done {time.strftime('%H:%M:%S')} (session still locked)")
-    with open(RESULT, "w", encoding="utf-8") as f:
-        f.write("\n".join(LINES) + "\n")
+def phase_check():
+    st = json.load(open(STATE, encoding="utf-8"))
+    after_png = os.path.join(TEMP, "wa_lock_after.png")
+    after = {
+        "desktop": desktop_name(),
+        "logonui": logonui_running(),
+        "winver_alive": bool(user32.IsWindow(st["winver"])),
+        "demo_alive": bool(user32.IsWindow(st["demo"])),
+    }
+    if after["demo_alive"]:
+        shot(st["demo"], after_png)
+        after["entry_delta_vs_base"] = entry_dark_px(after_png) - st["base"]
+    print("during-lock:", st["during"])
+    print("after-unlock:", after)
+    for h in (st["demo"], st["winver"]):
+        if user32.IsWindow(h):
+            close(h)
+
 
 if __name__ == "__main__":
-    main()
+    mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    if mode == "lock":
+        phase_lock()
+    elif mode == "check":
+        phase_check()
+    else:
+        raise SystemExit(__doc__)

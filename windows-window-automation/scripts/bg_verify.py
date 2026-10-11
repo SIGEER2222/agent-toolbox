@@ -1,9 +1,9 @@
-# bg_verify.py — 后台 UI 自动化能力验证矩阵（窗口解锁、非前台状态）。
-# 场景 A：目标窗口被 cover.pyw 完全遮住（不置底不最小化）
-# 场景 B：目标窗口被最小化
-# 场景 C：原生 Win32 控件（winver 确定按钮）BM_CLICK 基线
-# 每项验证真实副作用：截图非空 / 文本真正落进 Entry（截图像素验证）/ 窗口被销毁。
-# 用法：python bg_verify.py  （自动拉起并清理演示窗口；输出结果矩阵）
+# bg_verify.py — 后台 UI 自动化能力验证矩阵（窗口未前台、被遮挡 / 最小化）。
+# 场景 A：tk 演示窗被 cover.pyw 完全遮住：PrintWindow 截图 + WM_CHAR 注入输入框 + tk 按钮消息
+# 场景 B：tk 演示窗最小化：截图（预期失败）+ 注入（还原后验证）
+# 场景 C：原生控件被遮住：winver 的 PostMessageW(BM_CLICK) 与 UIA Invoke、运行框 UIA 写值 + Invoke
+# 每项验证真实副作用：截图差分（文本落入）/ 对话框销毁 / Calculator 启动。
+# 用法：python bg_verify.py  （自动拉起并清理测试窗口；输出结果矩阵）
 import ctypes
 import os
 import subprocess
@@ -12,8 +12,9 @@ import time
 from ctypes import wintypes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pywinauto import Desktop  # noqa: E402
 from win_capture import (  # noqa: E402
-    RECT, close, find_window, list_windows, shot, type_text, user32,
+    RECT, close, list_windows, shot, type_text, user32,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -129,30 +130,113 @@ def case_body(hwnd, tag):
     return out
 
 
-def winver_hwnd():
-    for h, _, t in list_windows():
-        cls = ctypes.create_unicode_buffer(64)
-        user32.GetClassNameW(h, cls, 64)
-        if cls.value == "#32770" and "windows" in t.lower():
-            return h
+class POINT(ctypes.Structure):
+    _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
+
+
+def top_at_centre(h):
+    x, y, w, hh = win_rect(h)
+    return user32.GetAncestor(user32.WindowFromPoint(POINT(x + w // 2, y + hh // 2)), 2)
+
+
+def window_title(h):
+    n = user32.GetWindowTextLengthW(h)
+    buf = ctypes.create_unicode_buffer(n + 1)
+    user32.GetWindowTextW(h, buf, n + 1)
+    return buf.value
+
+
+def cover_target(target):
+    """用 cover.pyw 盖住 target，并把遮挡窗（仅它自己）提到 Z 序顶层。
+    返回 (遮挡窗 hwnd, target 中心点实际的顶层窗口)；调用方用 covered_by() 判定真实遮挡者。"""
+    x, y, w, h = win_rect(target)
+    spawn("cover.pyw", {"COVER_X": str(x), "COVER_Y": str(y),
+                        "COVER_W": str(w), "COVER_H": str(h)})
+    cov = dialog_hwnd(lambda hw, t: t == "WACover", tries=25)
+    time.sleep(0.5)
+    user32.SetWindowPos(cov, 0, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)  # HWND_TOP, NOMOVE|NOSIZE|NOACTIVATE
+    time.sleep(0.6)
+    return cov, top_at_centre(target)
+
+
+def covered_by(cov, top, target):
+    if top == target:
+        return "NOT COVERED"
+    return "cover.pyw" if top == cov else window_title(top)
+
+
+def dialog_hwnd(pred, tries=30):
+    """等待第一个满足 pred(hwnd, title) 的窗口出现，返回 hwnd（找不到返回 0）。"""
+    for _ in range(tries):
+        time.sleep(0.3)
+        for h, _, t in list_windows():
+            if pred(h, t):
+                return h
     return 0
 
 
-def native_click_case():
-    """winver（原生 Win32 对话框）BM_CLICK -> 窗口销毁即生效。"""
+def is_winver(h, t):
+    cls = ctypes.create_unicode_buffer(64)
+    user32.GetClassNameW(h, cls, 64)
+    return cls.value == "#32770" and t.startswith("关于")
+
+
+def close_covers():
+    for h, _, t in list_windows():
+        if t == "WACover":
+            close(h)
+    time.sleep(0.8)
+
+
+def covered_winver(mode):
+    """winver 被 cover 完全遮住后，用 mode 关窗：post=PostMessageW(BM_CLICK)，uia=UIA Invoke。"""
     subprocess.Popen(["cmd.exe", "/c", "start", "winver"])
-    hwnd = 0
-    for _ in range(30):
-        time.sleep(0.3)
-        hwnd = winver_hwnd()
-        if hwnd:
-            break
+    hwnd = dialog_hwnd(is_winver)
     if not hwnd:
-        return {"winver": "not found"}
-    btn = button_child(hwnd)
-    user32.SendMessageW(btn, BM_CLICK, 0, 0)
-    time.sleep(0.6)
-    return {"bm_click_closed": not user32.IsWindow(hwnd)}
+        return "winver not found"
+    time.sleep(0.8)
+    cov, top = cover_target(hwnd)
+    covered = covered_by(cov, top, hwnd)
+    if mode == "post":
+        user32.PostMessageW(button_child(hwnd), BM_CLICK, 0, 0)
+    else:
+        Desktop(backend="uia").window(handle=hwnd).child_window(title="确定", control_type="Button").invoke()
+    time.sleep(1.0)
+    closed = not user32.IsWindow(hwnd)
+    if not closed:
+        close(hwnd)
+    close_covers()
+    return {"closed": closed, "covered_by": covered}
+
+
+def covered_runbox():
+    """运行框被 cover 遮住：UIA ValuePattern 写 calc + Invoke 确定 -> Calculator 启动。
+    只关闭本次新启动的计算器，不碰用户已打开的窗口。"""
+    calc_before = {h for h, _, t in list_windows() if t in ("Calculator", "计算器")}
+    subprocess.Popen(["cmd.exe", "/c", "explorer", "shell:::{2559a1f3-21d7-11d4-bdaf-00c04f60b9f0}"])
+    hwnd = dialog_hwnd(lambda h, t: t == "运行")
+    if not hwnd:
+        return "run dialog not found"
+    time.sleep(0.8)
+    cov, top = cover_target(hwnd)
+    covered = covered_by(cov, top, hwnd)
+    dlg = Desktop(backend="uia").window(handle=hwnd)
+    dlg.child_window(control_type="Edit").iface_value.SetValue("calc")
+    dlg.child_window(title="确定", control_type="Button").invoke()
+    time.sleep(2.5)
+    calc_new = [h for h, _, t in list_windows()
+                if t in ("Calculator", "计算器") and h not in calc_before]
+    for h in calc_new:
+        close(h)
+    close_covers()
+    return {"calc_launched": bool(calc_new), "covered_by": covered}
+
+
+def native_case():
+    """原生控件（winver / 运行框）在遮挡下的后台操作。"""
+    return {"winver_post": covered_winver("post"),
+            "winver_uia": covered_winver("uia"),
+            "runbox_uia": covered_runbox()}
 
 
 def main():
@@ -162,16 +246,14 @@ def main():
     demo = hwnd_by_pid(proc.pid, "WADemo")
     if not demo:
         raise SystemExit("WADemo window not found")
-    x, y, w, h = win_rect(demo)
 
     # ---- 场景 A：完全遮挡 ----
-    spawn("cover.pyw", {"COVER_X": str(x), "COVER_Y": str(y),
-                        "COVER_W": str(w), "COVER_H": str(h)})
-    time.sleep(1.2)
+    cov, top = cover_target(demo)
+    results["occluded_by"] = covered_by(cov, top, demo)
     run_case("occluded", lambda: case_body(demo, "occ"))
 
     # ---- 场景 B：最小化 ----
-    close(find_window("WACover")[0])
+    close_covers()
     user32.ShowWindow(demo, SW_MINIMIZE)
     time.sleep(1.0)
     run_case("minimized", lambda: case_body(demo, "min"))
@@ -188,8 +270,8 @@ def main():
         results["restored_shot"] = f"FAIL {e}"
     close(demo)
 
-    # ---- 场景 C：原生控件 BM_CLICK ----
-    run_case("native_winver", native_click_case)
+    # ---- 场景 C：原生控件在遮挡下 ----
+    run_case("native", native_case)
 
     for k, v in results.items():
         print(f"[{k}] {v}")
