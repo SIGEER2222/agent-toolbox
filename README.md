@@ -8,8 +8,13 @@ AI agent 实操过的工具/流程 runbook 集合。每篇都是**真实跑通�
 | 目录 | 主题 | 状态 |
 |---|---|---|
 | [tvbox-video/](tvbox-video/) | Windows 下 TVBox/zyfun 在线点播 + 4K 磁链下载 + B 站弹幕转 ASS + mpv 播放全流程 | 已验证 2026-10-11 |
+| [tabbit-browser-automation/](tabbit-browser-automation/) | WSL → Windows 调 tabbit-cli 驱动 Tabbit Browser：开页/接管标签页、注入 Playwright JS、取页面内容 | 已验证 2026-10-11 |
 
 > 新增工具记录时，在本表登记一行，保持索引与目录同步。
+
+## 外部参考
+
+写新 runbook 前先查 [REFERENCES.md](REFERENCES.md)：按「元索引 / Agent 技能库 / MCP 服务 / 桌面 UI 自动化 / 浏览器自动化 / 资源获取 / 三方 API 集成 / 可执行 runbook」分类的同类合集索引，能站轮子就别重造。
 
 ## 仓库规范（新增记录必须遵守）
 
