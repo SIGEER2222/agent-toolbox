@@ -1,1 +1,3 @@
+__pycache__/
+*.pyc
 tvbox-video/scripts/quark_urls.json
