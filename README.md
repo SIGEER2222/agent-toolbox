@@ -13,7 +13,7 @@ AI agent 实操过的工具/流程 runbook 集合。每篇都是**真实跑通�
 | [wmm-backend-api/](wmm-backend-api/) | Wyccc Mod Manager backend.api 进程内调用：playset / scan_mods / 深度冲突报告 | 已验证 2026-10-11 |
 | [steam-web-api/](steam-web-api/) | Steam Web API 无 key 端点查工坊条目元数据（GetPublishedFileDetails） | 已验证 2026-10-11 |
 | [github-rest-api/](github-rest-api/) | GitHub REST 匿名只读：rate_limit / 仓库元数据 / contents / raw 文件 | 已验证 2026-10-11 |
-| [wsl-windows-interop/](wsl-windows-interop/) | WSL↔Windows 通道：cmd.exe、wslpath、Windows Python、GCM 推送、$剥离/CRLF/9P 延迟 | 已验证 2026-10-11 |
+| [wsl-windows-interop/](wsl-windows-interop/) | WSL↔Windows 通道：cmd.exe、wslpath、Windows Python、GCM 推送、$剥离/CRLF/9P 延迟、node/PowerShell 桥（winnode.sh/winps.sh）、90 会话复盘坑表 | 已验证 2026-10-14 |
 
 | [qoder-acp/](qoder-acp/) | ACP 协议解剖 + Qoder CLI 的 ACP 模式（qoder --acp / Zed 接入 / 权限与终端反向能力）+ ACP Registry 分发路径 | 文档整理+部分实测 2026-10-13 |
 
