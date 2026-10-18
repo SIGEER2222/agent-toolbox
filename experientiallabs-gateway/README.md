@@ -58,12 +58,12 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 
 | 状态 | 模型 |
 |---|---|
-| ✅ 可调 | deepseek-v4.1-flash（~$0.3/1M）、**deepseek-v4.1-flash-uncensored（cost 实测为 0，免费）**、kimi-k3、glm-5.3 / glm-5.3-flash、qwen3.8-max、minimax-m3 |
-| ❌ 403 `model_location_not_supported` | claude-sonnet-5、gpt-6-sol、gpt-6-luna、gemini-3.8-flash（美系模型按 DB-IP 地理校验，全线封） |
+| ✅ 可调（直连+代理均可） | deepseek-v4.1-flash（~$0.3/1M）、**deepseek-v4.1-flash-uncensored（cost 实测为 0，免费）**、kimi-k3、glm-5.3 / glm-5.3-flash、qwen3.8-max、minimax-m3 |
+| ✅ 仅代理可调 | claude-sonnet-5、gpt-6-sol、gpt-6-luna、gemini-3.8-flash——中国 IP 403 `model_location_not_supported`（DB-IP 地理校验），挂非受限区出口（实测 108.181.x.x）全部解锁 `[实测 2026-10-18]` |
 | ❌ 429 `model_requires_purchase` | mimo-v2.5-pro（$1 验证不算 purchase，需先买 credits 解锁） |
-| ❌ 503 route unavailable | gpt-6-luna-decisions、clef-flash、jev-latest（路由暂不可用） |
+| ❌ 503 route unavailable | gpt-6-luna-decisions、clef-flash、jev-latest（服务端死路由，换代理依旧 503，非地域问题） |
 
-结论：中国 IP 只能调中系/开源模型；要全目录需非受限地区出口 `[需验证：代理出口是否解锁]`。
+结论：直连只能调中系/开源模型；挂非受限区代理后全目录除 3 条死路由外均可用 `[实测 2026-10-18]`。调用端走代理：curl `--proxy http://127.0.0.1:7897`、Python `ProxyHandler`、OpenAI SDK `HTTPS_PROXY` env。
 
 `deepseek-v4.1-flash-uncensored` 专项 `[实测 2026-10-18]`：成人向露骨请求零拒绝、无说教式拦截，`finish_reason=stop` 完整产出，`cost=0` 免费；尺度随 prompt 直给（含蓄 prompt 出暧昧文学，直白 prompt 出解剖术语级内容）。
 
