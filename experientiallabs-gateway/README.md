@@ -52,7 +52,18 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 
 期望：HTTP 200，`{"object":"list","data":[...]}`；本 key 实测返回 318 个模型 `[实测 2026-10-18]`。
 
-调用验证：`choices[0].message.content` 非空、`usage.cost` 为 USD 实扣、`provider` 形如 `experiential_cloud`。
+调用验证：`choices[0].message.content` 非空、`usage.cost` 为 USD 实扣、`provider` 形如 `experiential_cloud`。Credits 页余额实时可见，pending 调用稍后才结算。
+
+### 中国 IP 可用性矩阵（[实测 2026-10-18]）
+
+| 状态 | 模型 |
+|---|---|
+| ✅ 可调 | deepseek-v4.1-flash（~$0.3/1M）、**deepseek-v4.1-flash-uncensored（cost 实测为 0，免费）**、kimi-k3、glm-5.3 / glm-5.3-flash、qwen3.8-max、minimax-m3 |
+| ❌ 403 `model_location_not_supported` | claude-sonnet-5、gpt-6-sol、gpt-6-luna、gemini-3.8-flash（美系模型按 DB-IP 地理校验，全线封） |
+| ❌ 429 `model_requires_purchase` | mimo-v2.5-pro（$1 验证不算 purchase，需先买 credits 解锁） |
+| ❌ 503 route unavailable | gpt-6-luna-decisions、clef-flash、jev-latest（路由暂不可用） |
+
+结论：中国 IP 只能调中系/开源模型；要全目录需非受限地区出口 `[需验证：代理出口是否解锁]`。
 
 ## 已知坑
 
@@ -64,7 +75,7 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 | 402/余额不足于免费模型 | 未做 $1 验证，credits=0 | Verify with $1.00（实扣入余额，非预授权）`[实测]` |
 | `GET /v1/models` 401 invalid_key | key 为空/未生效（新建 key 有传播延迟可能）；注意 key 只在创建弹窗出现一次 | 确认 `xpl_`+40hex 完整；文件存 CRLF 行尾读取注意 strip `[实测]` |
 | 自动化时 `$` 被 shell 层吃掉 | 元素名含 `$1.00` | 用 `getByText("Verify with")` 或 `\$` 转义 `[实测]` |
-| 目录很多"Free"模型 | 免费档受 hourly/daily 限额；Pro($20/mo) 才完全免 ds-v4.1-flash/gpt-6-luna/jev | 看 Credits 页 Plan 区 `[文档]` |
+| 目录很多"Free"模型 | 免费档受 hourly/daily 限额；Credits 页可切「Free models past the daily limit」策略（Stop at the free limit / 付费继续）；Pro($20/mo) 才完全免 ds-v4.1-flash/gpt-6-luna/jev | 看 Credits 页 Plan 区 `[文档+实测]` |
 
 ## 文件清单
 
