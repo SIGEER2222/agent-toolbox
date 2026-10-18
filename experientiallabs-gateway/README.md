@@ -2,7 +2,7 @@
 
 ## 概述
 
-platform.experientiallabs.ai 是 OpenAI 兼容的多模型推理网关（公开目录 1100+ 模型，单 key 实测可调 318 个）。一次性 $1.00 卡验证即解锁：500 credits/月免费档 + 免费/促销模型 + 充值通道。$1 实扣计入余额（1 credit = 1¢）。
+platform.experientiallabs.ai 是 OpenAI 兼容的多模型推理网关（公开目录 1100+ 模型，单 key 实测可调 318 个）。一次性 $1.00 卡验证即解锁：每 30 天余额补足至 ~500 credits 的免费档（≈$5，花多少补多少不叠加）+ 免费/促销模型 token 配额 + 充值通道。$1 实扣计入余额（1 credit = 1¢）。
 
 ## 环境前提
 
@@ -80,6 +80,7 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 - 缓存输入 token 不计入配额；超额后默认停用到 UTC 0 点重置
 - Credits 页「Free models past the daily limit」可切溢出策略：Stop at the free limit（默认，安全）/ 开启后按目录价（此模型 $0.30/M 输入 + $1.20/M 输出）从 credits 扣
 - 门槛：需已存卡 + 一笔 ≥$1 已结算扣款（$1 验证即满足）；促销阵容会轮换/下线，下线后按目录价正常计费
+- 免费档 credits 是**补足制**：每 30 天余额补到 ~500（≈$5），不是每月新增 500；开溢出后超限用量按目录价从这 $5 里扣，约再买 ~10M tokens（$0.30/M 输入 + $1.20/M 输出）。总账 ≈145M tokens/月
 
 ## 已知坑
 
