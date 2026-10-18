@@ -65,6 +65,8 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 
 结论：中国 IP 只能调中系/开源模型；要全目录需非受限地区出口 `[需验证：代理出口是否解锁]`。
 
+`deepseek-v4.1-flash-uncensored` 专项 `[实测 2026-10-18]`：成人向露骨请求零拒绝、无说教式拦截，`finish_reason=stop` 完整产出，`cost=0` 免费；尺度随 prompt 直给（含蓄 prompt 出暧昧文学，直白 prompt 出解剖术语级内容）。
+
 ## 已知坑
 
 | 现象 | 原因 | 解法 |
