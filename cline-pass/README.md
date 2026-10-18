@@ -75,6 +75,13 @@ cline -P cline-pass -m cline-pass/glm-5.3 "Reply with exactly: OK"
 
 期望：输出 `OK`；providers.json 中 `lastUsedProvider` 为 `cline-pass`。
 
+### ClinePass 模型可用性（中国 IP 逐个实测 2026-10-18，模型名必须带 `cline-pass/` 前缀）
+
+| 状态 | 模型 |
+|---|---|
+| ✅ 200 | deepseek-v4-pro、deepseek-v4.1-flash、kimi-k3、glm-5.3、glm-5.3-flash、qwen3.8-max、qwen3.7-max、qwen3.7-plus、mimo-v2.5、mimo-v2.5-pro、minimax-m3 |
+| ❌ 403 区域封 | muse-spark-1.3-contributor（"not available in your region"） |
+
 ## 已知坑
 
 | 现象 | 原因 | 解法 |
