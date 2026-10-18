@@ -69,18 +69,20 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 
 ### 免费模型 token 配额机制（[文档+实测 2026-10-18]）
 
-促销免费模型按**组织级 token 配额**限流（非 credits）：配额内 `cost=0`，超限返回 `429 insufficient_quota`（"free limit"），**不自动扣费**。数据取自模型页内嵌 JSON 与官方 llms.txt：
+促销免费模型按**组织级 token 配额**限流（非 credits）：配额内 `cost=0`，超限返回 `429 insufficient_quota`（"free limit"），**不自动扣费**。数据取自模型页内嵌 JSON、官方 llms.txt 与 429 报错实测：
 
-| 模型 | 输入/小时 | 输出/小时 | 输入/UTC天 | 输出/UTC天 | 月折算 |
-|---|---|---|---|---|---|
-| deepseek-v4.1-flash-uncensored | 1.25M | 250k | 3.75M | 750k | ≈135M tokens（≈$60 目录价） |
-| deepseek-v4.1-flash-1017 | 1.25M | 250k | 3.75M | 750k | ≈135M（审查版同款配额） |
-| gpt-6-luna-decisions | ~2M | ~667k | ~6M | ~2M | ≈240M（中国 IP 实测 503 路由不可用） |
-| clef / clef-flash | 无小时限 | 无小时限 | ~1T | ~1T | 实质无限；66K ctx 小模型，免卡验证即可用，实测 503 |
-| gpt-6-astra（文档示例） | 200k | 40k | 500k | 100k | — |
-| claude-fable-5.1（文档示例） | 100k | 30k | 375k | 75k | — |
+| 模型 | 输入/小时（实测） | 输入/UTC天（页面标称） | 输出/UTC天 | 备注 |
+|---|---|---|---|---|
+| deepseek-v4.1-flash-uncensored | **~375K**（429 报错自带，非页面 1.25M） | 3.75M 标称，实测中 | 750k 标称 | 实测每小时 ~375K 输入后 429，UTC 整点重置 `[实测 2026-10-18]` |
+| deepseek-v4.1-flash-1017 | ~375K（同档） | 3.75M 标称 | 750k 标称 | 审查版：拒露骨性描写但放行暴力/粗口 |
+| gpt-6-luna-decisions | ~2M 标称 | ~6M 标称 | ~2M 标称 | 中国 IP 实测 503 路由不可用 |
+| clef / clef-flash | 无小时限标称 | ~1T 标称 | ~1T 标称 | 66K ctx 小模型，免卡验证，实测 503 |
+| gpt-6-astra（文档示例） | 200k | 500k | 100k | — |
+| claude-fable-5.1（文档示例） | 100k | 375k | 75k | — |
 
-配额**按模型独立计算**：促销池横向铺开 ≈270M（当前中国 IP 可用）~500M+（路由全恢复）tokens/月。注意区分标签：Promotional 区 "Free"=配额免费；"Free with Pro"=Pro 订阅权益（GPT-6 Luna、DS V4.1 Flash），付费才免；划线价→$0=促销归零。
+⚠️ **页面标称值与实际限流不符**：429 响应 `free_limit_reached` 会报真实数值（"375,000 input tokens this hour"），以错误消息为准 `[实测 2026-10-18]`。
+
+配额**按模型独立计算**；多账号轮换可行（配额按 org 计）。注意区分标签：Promotional 区 "Free"=配额免费；"Free with Pro"=Pro 订阅权益（GPT-6 Luna、DS V4.1 Flash），付费才免；划线价→$0=促销归零。
 
 - 缓存输入 token 不计入配额；超额后默认停用到 UTC 0 点重置
 - Credits 页「Free models past the daily limit」可切溢出策略：Stop at the free limit（默认，安全）/ 开启后按目录价（此模型 $0.30/M 输入 + $1.20/M 输出）从 credits 扣
