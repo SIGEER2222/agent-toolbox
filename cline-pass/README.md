@@ -90,6 +90,7 @@ cline -P cline-pass -m cline-pass/glm-5.3 "Reply with exactly: OK"
 | 请求被按量计费扣 credits | 模型名没写 `cline-pass/` 前缀 | model 字段写全 `cline-pass/<model>` `[实测]` |
 | 解析响应取不到 choices | 响应包了一层 `{"data":{...},"success":true}` 信封 | 取 `resp["data"]["choices"]` `[实测 2026-10-18]` |
 | 想固定「官方上游」但无效 | 当前 ds-v4.1-flash/glm-5.3 只有 `openai-compatible-private` 单通道（`fallbacksAvailable:[]`），`providerOptions.gateway.only`/`provider.only` 均被静默忽略 | 无可选上游，不用配；linux.sb 钉上游攻略已过时 `[实测 2026-10-18]` |
+| `HTTP 500 empty response content`（大输入必现） | thinking 模型的 reasoning 烧光了 `max_tokens`，正文为空被网关包成 500 | `max_tokens` 给足（实测 ≥500 稳妥）；ds-v4.1-flash 输入单价实测 ~$0.15/M（参考价，计入配额窗口非现金）`[实测 2026-10-18]` |
 | 脚本读不到刚 setx 的 CLINE_API_KEY | 已启动进程的 env block 是旧的 | 新开终端，或读 `~/.cline_api_key` 文件 `[实测]` |
 | 收银台看不到优惠 | 从普通订阅页进，没有 promo code 入口 | 必须走 `app.cline.bot/promo?code=` 链接 `[实测]` |
 | 计费限额疑惑 | 按 5h 滚动/每周/每月三窗，月窗≈5h×5（API 等价 ~$50），便宜模型高缓存命中下月可用到数 B tokens | dashboard Subscription 页看三窗百分比 `[社区+实测]` |
