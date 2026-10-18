@@ -74,8 +74,13 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 | 模型 | 输入/小时 | 输出/小时 | 输入/UTC天 | 输出/UTC天 | 月折算 |
 |---|---|---|---|---|---|
 | deepseek-v4.1-flash-uncensored | 1.25M | 250k | 3.75M | 750k | ≈135M tokens（≈$60 目录价） |
+| deepseek-v4.1-flash-1017 | 1.25M | 250k | 3.75M | 750k | ≈135M（审查版同款配额） |
+| gpt-6-luna-decisions | ~2M | ~667k | ~6M | ~2M | ≈240M（中国 IP 实测 503 路由不可用） |
+| clef / clef-flash | 无小时限 | 无小时限 | ~1T | ~1T | 实质无限；66K ctx 小模型，免卡验证即可用，实测 503 |
 | gpt-6-astra（文档示例） | 200k | 40k | 500k | 100k | — |
 | claude-fable-5.1（文档示例） | 100k | 30k | 375k | 75k | — |
+
+配额**按模型独立计算**：促销池横向铺开 ≈270M（当前中国 IP 可用）~500M+（路由全恢复）tokens/月。注意区分标签：Promotional 区 "Free"=配额免费；"Free with Pro"=Pro 订阅权益（GPT-6 Luna、DS V4.1 Flash），付费才免；划线价→$0=促销归零。
 
 - 缓存输入 token 不计入配额；超额后默认停用到 UTC 0 点重置
 - Credits 页「Free models past the daily limit」可切溢出策略：Stop at the free limit（默认，安全）/ 开启后按目录价（此模型 $0.30/M 输入 + $1.20/M 输出）从 credits 扣
