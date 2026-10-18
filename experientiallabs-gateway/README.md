@@ -81,6 +81,7 @@ curl -s https://api.experientiallabs.ai/v1/models -H "Authorization: Bearer xpl_
 - Credits 页「Free models past the daily limit」可切溢出策略：Stop at the free limit（默认，安全）/ 开启后按目录价（此模型 $0.30/M 输入 + $1.20/M 输出）从 credits 扣
 - 门槛：需已存卡 + 一笔 ≥$1 已结算扣款（$1 验证即满足）；促销阵容会轮换/下线，下线后按目录价正常计费
 - 免费档 credits 是**补足制**：每 30 天余额补到 ~500（≈$5），不是每月新增 500；开溢出后超限用量按目录价从这 $5 里扣，约再买 ~10M tokens（$0.30/M 输入 + $1.20/M 输出）。总账 ≈145M tokens/月
+- Pro/Max/Ultra（$20/$200/$2000 起）= 2000/20000/200000 credits 月额 + 云模型分档折扣 + ZDR/Plans 池/Intelligence；促销免费配额独立保留。**此模型 plan_discounts=null 无折扣**，Pro 对 uncensored 仅按目录价多买 ~44M tokens——与直接 top-up 充值购买力相同，为加量应直接充值而非订阅 Pro `[实测 2026-10-18]`
 
 ## 已知坑
 
