@@ -17,6 +17,7 @@ AI agent 实操过的工具/流程 runbook 集合。每篇都是**真实跑通�
 
 | [qoder-acp/](qoder-acp/) | ACP 协议解剖 + Qoder CLI 的 ACP 模式（qoder --acp / Zed 接入 / 权限与终端反向能力）+ ACP Registry 分发路径 | 文档整理+部分实测 2026-10-13 |
 | [cline-pass/](cline-pass/) | Cline Pass 订阅全流程：KOL 80 码首月 ~¥15、Stripe 收银台/卡组织坑、API key + cline CLI 配置、上游路由实测 | 已验证 2026-10-18 |
+| [experientiallabs-gateway/](experientiallabs-gateway/) | Experiential Labs 多模型网关：$1 卡验证解锁 500 credits/月、银联 3DS 流程、xpl_ key 与 OpenAI 兼容调用 | 已验证 2026-10-18 |
 
 > 新增工具记录时，在本表登记一行，保持索引与目录同步。
 
