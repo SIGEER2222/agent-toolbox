@@ -1,0 +1,3 @@
+[submodule "workbuddy-daily"]
+	path = workbuddy-daily
+	url = https://github.com/SIGEER2222/WorkBuddy-Daily.git

@@ -20,6 +20,8 @@ AI agent 实操过的工具/流程 runbook 集合。每篇都是**真实跑通�
 | [experientiallabs-gateway/](experientiallabs-gateway/) | Experiential Labs 多模型网关：$1 卡验证解锁 500 credits/月、银联 3DS 流程、xpl_ key 与 OpenAI 兼容调用 | 已验证 2026-10-18 |
 | [aliyun-custom-domain-mail/](aliyun-custom-domain-mail/) | 阿里企业邮箱免费版（50 账号 ×5GB）+ 子域并存方案（不碰主域现有邮局）：下单/换绑/DNS/验证/建号/关 2FA 全流程，含云解析 UI bug → API Explorer 绕法 | 已验证 2026-10-20 |
 
+| [workbuddy-daily/](workbuddy-daily/) | WorkBuddy/CodeBuddy 免费池管线：白鲸(qc86)接码注册 CN 小号 → plugin-auth.json 收编 → 34 项成长任务+签到日跑 → magpie ds41f-free 多号轮转（submodule → SIGEER2222/WorkBuddy-Daily） | 已验证 2026-10-26 |
+
 > 新增工具记录时，在本表登记一行，保持索引与目录同步。
 
 ## 外部参考
