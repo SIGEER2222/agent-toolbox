@@ -1,0 +1,21 @@
+# 行尾策略：仓内一律 LF；cmd/bat 检出为 CRLF（cmd.exe 硬性要求）
+# Windows 编辑器写 CRLF 不会再把仓搞脏（clean 时自动归一）
+* text=auto
+
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.pyw  text eol=lf
+*.cs   text eol=lf
+*.ps1  text eol=lf
+*.js   text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+*.png binary
