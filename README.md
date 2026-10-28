@@ -21,6 +21,7 @@ AI agent 实操过的工具/流程 runbook 集合。每篇都是**真实跑通�
 | [aliyun-custom-domain-mail/](aliyun-custom-domain-mail/) | 阿里企业邮箱免费版（50 账号 ×5GB）+ 子域并存方案（不碰主域现有邮局）：下单/换绑/DNS/验证/建号/关 2FA 全流程，含云解析 UI bug → API Explorer 绕法 | 已验证 2026-10-20 |
 
 | [workbuddy-daily/](workbuddy-daily/) | WorkBuddy/CodeBuddy 免费池管线：白鲸(qc86)接码注册 CN 小号 → plugin-auth.json 收编 → 34 项成长任务+签到日跑 → magpie ds41f-free 多号轮转（submodule → SIGEER2222/WorkBuddy-Daily） | 已验证 2026-10-26 |
+| [dsh-web-bridge/](dsh-web-bridge/) | Devin/脚本 ↔ DSH web 会话双向桥：tabbit 驱动真实浏览器标签页收发消息（ACP 写锁绕行），转写无锁读、发送三重 URL 断言+回执校验 | 已验证 2026-10-28 |
 
 > 新增工具记录时，在本表登记一行，保持索引与目录同步。
 
