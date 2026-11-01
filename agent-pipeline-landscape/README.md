@@ -10,10 +10,11 @@
 
 ## 环境前提
 
-本文件是**调研笔记**而非可执行 runbook，无环境依赖。若要走可执行部分（第十节的落地蓝图），需要：
+本文件是**调研笔记**而非可执行 runbook，无环境依赖。若要按第十二节的蓝图自己搭，最小环境是：
 
-- Python 3.13（`%LOCALAPPDATA%\Programs\Python\Python313\python.exe`）
-- 若要接 WH3 工作区：`E:\Code\WH3-modding` 的 `tools/build_pack.py`
+- Python 3.13（或你选定框架要求的版本）；TypeScript 栈用 Node 22+
+- 一个能跑 agent 的开发环境（Claude Code / Codex CLI / 任一支持工具调用的客户端）
+- 若要走持久化执行：本地 Docker（Temporal/DBOS/Restate 都能单机起）
 
 ## 一、四层架构：先分清在选哪一层
 
@@ -257,18 +258,26 @@ sandbox（容器/手机/模拟器，是 cattle 不是 pet）
 
 ## 十二、落地蓝图
 
-### 场景 A：本地批处理（例：WH3 MOD 流水线）
+### 场景 A：本地批处理流水线（最通用的一种）
+
+适用于「一批同构任务，每个独立、可并行、结果可机器判定」的场景——批量改代码、批量迁移、批量校验、批量生成文档、批量处理数据。
 
 ```
-Stage 0  initializer：生成 feature_list.json（改动项清单，全 false）+ 冒烟脚本
-Stage 1  fan-out：每个改动项一个 agent（独立上下文，schema 结构化输出）
+Stage 0  initializer：把任务拆成清单（feature_list.json，逐项 passes: false）+ 一条冒烟命令
+Stage 1  fan-out：每项一个 agent，独立上下文，按 schema 输出结构化结果
 Stage 2  adversarial verify：每项配对抗校验 agent（对照 MAST FC1/FC2/FC3）
-Stage 3  打包：tools/build_pack.py <mod> --deploy
-Stage 4  端状态断言：读 state.db 确认新 mod_id 在 playset 中 ← pass/fail 的唯一标准
-Stage 5  （可选）evaluator：只在"超出模型可靠边界"的改动上启用
+Stage 3  执行副作用：真正落盘/部署/写库（只在此步做不可逆动作）
+Stage 4  端状态断言：直接读真实系统状态确认结果 ← pass/fail 的唯一标准
+Stage 5  （可选）evaluator：只在"超出模型可靠边界"的任务上启用
 ```
 
-要点：不引入框架（用现成 agent 运行时原语）；`feature_list.json` 是唯一真相源，agent 只能改 `passes` 字段；单次运行设 token 上限 + 最大步数。
+要点：
+
+- **不引入框架**——多数本地批处理用「宿主运行时的 pipeline 原语 + 一个 JSON 清单」就够；引入图框架只增加一层无收益抽象。
+- `feature_list.json` 是唯一真相源，agent 只允许改 `passes` 字段（用 JSON 而非 Markdown，模型更不容易改写）。
+- **Stage 4 不接受 agent 自述成功**，必须回读真实状态（文件哈希、DB 行、接口返回、测试退出码）。
+- 单次运行设 token 上限 + 最大步数，防 OWASP LLM10 无界消耗。
+- 中断可恢复：每个 Stage 的产物落盘，恢复时从最后一个完成的 Stage 继续。
 
 ### 场景 B：要做成产品/服务
 
