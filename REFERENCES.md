@@ -50,6 +50,22 @@
 | [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) | Playwright 官方 MCP server |
 | [firecrawl/firecrawl-mcp-server](https://github.com/firecrawl/firecrawl-mcp-server) | 抓取 + 搜索 + 页面交互三合一 MCP |
 
+## Agent 编排框架 / 评测 / 协议（详见本仓库 [agent-pipeline-landscape/](agent-pipeline-landscape/)）
+
+核验日期：2026-11-01（逐条用 GitHub API 确认存在，均返回 200）。
+
+| 类别 | 条目 |
+|---|---|
+| 编排运行时 | [langchain-ai/langgraph](https://github.com/langchain-ai/langgraph)、[google/adk-python](https://github.com/google/adk-python)、[microsoft/agent-framework](https://github.com/microsoft/agent-framework)、[crewAIInc/crewAI](https://github.com/crewAIInc/crewAI)、[pydantic/pydantic-ai](https://github.com/pydantic/pydantic-ai)、[run-llama/llama_index](https://github.com/run-llama/llama_index) |
+| Harness / SDK | [openai/openai-agents-python](https://github.com/openai/openai-agents-python)、[anthropics/claude-agent-sdk-python](https://github.com/anthropics/claude-agent-sdk-python)、[strands-agents/harness-sdk](https://github.com/strands-agents/harness-sdk)、[deepagents（PyPI）](https://pypi.org/project/deepagents/) |
+| 持久化执行 | [temporalio/temporal](https://github.com/temporalio/temporal)、[dbos-inc/dbos-transact-py](https://github.com/dbos-inc/dbos-transact-py)、[restatedev/restate](https://github.com/restatedev/restate) |
+| 评测 | [UKGovernmentBEIS/inspect_ai](https://github.com/UKGovernmentBEIS/inspect_ai)、[harbor-framework/harbor](https://github.com/harbor-framework/harbor)、[promptfoo/promptfoo](https://github.com/promptfoo/promptfoo)、[sierra-research/tau-bench](https://github.com/sierra-research/tau-bench) |
+| 失败分类 / 红队 | [multi-agent-systems-failure-taxonomy/MAST](https://github.com/multi-agent-systems-failure-taxonomy/MAST)、[ethz-spylab/agentdojo](https://github.com/ethz-spylab/agentdojo)、[google-research/camel-prompt-injection](https://github.com/google-research/camel-prompt-injection) |
+| 观测 | [langfuse/langfuse](https://github.com/langfuse/langfuse)、[open-telemetry/semantic-conventions-genai](https://github.com/open-telemetry/semantic-conventions-genai) |
+| 协议 / 标准 | [modelcontextprotocol/modelcontextprotocol](https://github.com/modelcontextprotocol/modelcontextprotocol)、[a2aproject/A2A](https://github.com/a2aproject/A2A)、[agentsmd/agents.md](https://github.com/agentsmd/agents.md)、[agentskills/agentskills](https://github.com/agentskills/agentskills) |
+| 方法论文档 | [humanlayer/12-factor-agents](https://github.com/humanlayer/12-factor-agents) |
+| 沙箱 | [e2b-dev/E2B](https://github.com/e2b-dev/E2B) |
+
 ## 资源获取 / 抓取
 
 | 工具 | 内容 |
